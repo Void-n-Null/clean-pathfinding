@@ -13,6 +13,15 @@ using static CleanPathfinding.ModSettings_CleanPathfinding;
  
 namespace CleanPathfinding
 {
+	static class Area_Assit
+    {
+		public static void SetLabel(this Area_Allowed self, string label)
+        {
+
+        }
+    }
+
+
 	//Add gizmos to the doors
     [HarmonyPatch(typeof(Building_Door), nameof(Building_Door.GetGizmos))]
     static class Patch_Building_Door_GetGizmos
@@ -81,6 +90,9 @@ namespace CleanPathfinding
 		}
 	}
 
+#if v1_5
+	//SetLabel removed in 1.5
+#else
 	[HarmonyPatch(typeof(Area_Allowed), nameof(Area_Allowed.SetLabel))]
     static class Patch_Area_Allowed_SetLabel
     {
@@ -100,6 +112,7 @@ namespace CleanPathfinding
 			else if (__instance.Label == "Avoid" && compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing mapComp)) mapComp.RegisterAvoidArea(__instance);
 		}
 	}
+#endif
 
 	[HarmonyPatch(typeof(World), nameof(World.FinalizeInit))]
     static class Patch_FinalizeInit

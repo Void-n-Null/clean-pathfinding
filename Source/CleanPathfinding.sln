@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.34601.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CleanPathfinding", "CleanPathfinding.csproj", "{580CD268-7D44-402D-9FBE-76A743993959}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		1.4|Any CPU = 1.4|Any CPU
+		1.5|Any CPU = 1.5|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{580CD268-7D44-402D-9FBE-76A743993959}.1.4|Any CPU.ActiveCfg = 1.4|Any CPU
+		{580CD268-7D44-402D-9FBE-76A743993959}.1.4|Any CPU.Build.0 = 1.4|Any CPU
+		{580CD268-7D44-402D-9FBE-76A743993959}.1.5|Any CPU.ActiveCfg = 1.5|Any CPU
+		{580CD268-7D44-402D-9FBE-76A743993959}.1.5|Any CPU.Build.0 = 1.5|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {058A7526-2742-491F-B717-AC7BC5D88641}
+	EndGlobalSection
+EndGlobal

@@ -9,17 +9,16 @@
 		<TargetFramework>net48</TargetFramework>
 		<LangVersion>preview</LangVersion>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<Configurations>1.4;1.5</Configurations>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<OutputPath>..\..\..\Mods\$(Product)\$(Version)\Assemblies</OutputPath>
-		<DefineConstants>TRACE;NDEBUG</DefineConstants>
-		<WarningLevel>4</WarningLevel>
-		<DebugSymbols>false</DebugSymbols>
-		<DebugType>None</DebugType>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='1.4|AnyCPU'">
 		<OutputPath>..\..\..\Mods\$(Product)\$(Version)\Assemblies</OutputPath>
 		<DefineConstants>TRACE;DEBUG;NETFRAMEWORK;NET48;</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='1.5|AnyCPU'">
+	  <OutputPath>..\..\..\Mods\Clean Pathfinding\1.5\Assemblies</OutputPath>
+	  <DefineConstants>NETFRAMEWORK;NET48;v1_5</DefineConstants>
+	  <Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Krafs.Publicizer" Version="2.*">
@@ -31,7 +30,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.4.*" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4069" />
 	</ItemGroup>
 	<ItemGroup>
 		<Publicize Include="Assembly-CSharp" />

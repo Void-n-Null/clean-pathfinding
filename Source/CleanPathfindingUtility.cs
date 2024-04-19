@@ -4,6 +4,7 @@ using Verse;
 using Verse.AI;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Linq;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
@@ -48,7 +49,7 @@ namespace CleanPathfinding
 				if (searchForObjects && objectsFound < 3 && code.opcode == OpCodes.Ldloc_S)
                 {
 					objects[objectsFound++] = code.operand;
-					//As of 12/5, object 0 should be 48, object 1 should be 12, and object 2 should be 45
+					//As of 4/2024, object 0 should be 46, object 1 should be 12, and object 2 should be 43
 				}
 
                 if (offset == -1 && code.opcode == OpCodes.Ldfld && code.OperandIs(field_extraNonDraftedPerceivedPathCost))
@@ -56,21 +57,22 @@ namespace CleanPathfinding
                     offset = 0;
                     continue;
                 }
+				
                 if (offset > -1 && ++offset == 2)
                 {
-                    yield return new CodeInstruction(OpCodes.Ldloc_0);
+                    yield return new CodeInstruction(OpCodes.Ldloc_0); //pawn
                     yield return new CodeInstruction(OpCodes.Ldloc_S, objects[1]); //topGrid
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[2]); //TerrainDef within the grid
-                    yield return new CodeInstruction(OpCodes.Ldelem_Ref);
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[0]); //Pathcost total
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[2]); //topGrid index number
+                    yield return new CodeInstruction(OpCodes.Ldelem_Ref); //TerrainDef within the grid
+					yield return new CodeInstruction(OpCodes.Ldloc_S, objects[0]); //Pathcost total
+                    yield return new CodeInstruction(OpCodes.Ldarg_0); //start position (not used by adjust cost?)
                     yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(PathFinder), nameof(PathFinder.map)));
                     yield return new CodeInstruction(OpCodes.Ldloc_S, objects[2]); //cell location
                     yield return new CodeInstruction(OpCodes.Call, typeof(CleanPathfindingUtility).GetMethod(nameof(CleanPathfindingUtility.AdjustCosts)));
                     yield return new CodeInstruction(OpCodes.Stloc_S, objects[0]);
 
                     ran = true;
-                }
+                } 
             }
             
             if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target. There may be a mod conflict, or RimWorld updated?");
@@ -267,13 +269,18 @@ namespace CleanPathfinding
 					daylight = map.skyManager.curSkyGlowInt;
 					if (daylight == 1f) return 1f;
 				}
+#if v1_5
+
+#else
 				ColorInt color = map.glowGrid.glowGrid[index];
+#endif
+				UnityEngine.Color32 color = map.glowGrid.VisualGlowAt(index);
 				if (color.a == 1) return 1;
 
 				return (float)(color.r + color.g + color.b) * 0.0047058823529412f; //n / 3f / 255f * 3.6f pre-computed, since I guess the assembler doesn't optimize this
 			}
 
-			#endregion
+#endregion
         }
 	}
 }
