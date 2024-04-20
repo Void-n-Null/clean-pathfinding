@@ -166,7 +166,7 @@ namespace CleanPathfinding
 				Log.Error("[Clean Pathfinding] Error processing settings, skipping...\n" + ex);
 			}
 		}
-		static public int AdjustCosts(Pawn pawn, TerrainDef def, int cost, Map map, int index)
+		static public float AdjustCosts(Pawn pawn, TerrainDef def, float cost, Map map, int index)
         {
 			if (pawn == null) goto skipAdjustment;
 
