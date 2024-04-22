@@ -86,7 +86,10 @@ namespace CleanPathfinding
 		public Mod_CleanPathfinding(ModContentPack content) : base(content)
 		{
 			base.GetSettings<ModSettings_CleanPathfinding>();
-			new Harmony(this.Content.PackageIdPlayerFacing).PatchAll();
+
+			Harmony harmony = new Harmony(this.Content.PackageIdPlayerFacing);
+			Harmony.DEBUG = true;
+			harmony.PatchAll();
 		}
 
 		public override void DoSettingsWindowContents(Rect inRect)

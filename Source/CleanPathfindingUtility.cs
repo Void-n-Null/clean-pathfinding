@@ -12,15 +12,100 @@ using static CleanPathfinding.ModSettings_CleanPathfinding;
 namespace CleanPathfinding
 {
 	#region Harmony
-	[HarmonyPatch(typeof(PathFinder), nameof(PathFinder.FindPath), new Type[] { 
-        typeof(IntVec3), 
-        typeof(LocalTargetInfo), 
-        typeof(TraverseParms), 
-        typeof(PathEndMode), 
-        typeof(PathFinderCostTuning) })]
-    static class Patch_PathFinder
-    {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+
+
+	[HarmonyPatch(typeof(PathFinder))]
+
+	static class Patch_PathFinder_Finalize
+	{
+		/* here to trouble shoot memory leaks
+		 * Soyuz caught this error. Please don't report this to the RocketMan team unless you're certain RocketMan caused this error. with error System.OutOfMemoryException: Out of memory
+[Ref 3B9F4383]
+ at (wrapper managed-to-native) System.Object.__icall_wrapper_ves_icall_array_new_specific(intptr,int)
+ at System.Collections.Generic.List`1[T].set_Capacity (System.Int32 value) [0x00021] in <eae584ce26bc40229c1b1aa476bfa589>:0 
+ at System.Collections.Generic.List`1[T].EnsureCapacity (System.Int32 min) [0x00036] in <eae584ce26bc40229c1b1aa476bfa589>:0 
+ at System.Collections.Generic.List`1[T].Add (T item) [0x00010] in <eae584ce26bc40229c1b1aa476bfa589>:0 
+ at Verse.AI.PawnPath.AddNode (Verse.IntVec3 nodePosition) [0x00000] in <957a20e0be784a65bc32cf449445b937>:0 
+ at Verse.AI.PathFinder.FinalizedPath (System.Int32 finalIndex, System.Boolean usedRegionHeuristics) [0x00036] in <957a20e0be784a65bc32cf449445b937>:0 
+ at Verse.AI.PathFinder.FindPath (Verse.IntVec3 start, Verse.LocalTargetInfo dest, Verse.TraverseParms traverseParms, Verse.AI.PathEndMode peMode, Verse.AI.PathFinderCostTuning tuning) [0x005a5] in <957a20e0be784a65bc32cf449445b937>:0 
+     - TRANSPILER Owlchemist.CleanPathfinding.tmp: IEnumerable`1 CleanPathfinding.Patch_PathFinder:Transpiler(IEnumerable`1 instructions)
+     - TRANSPILER OskarPotocki.VanillaFurnitureExpanded.Security: IEnumerable`1 VFESecurity.Patch_PathFinder+FindPath:Transpiler(IEnumerable`1 instructions)
+ at Verse.AI.PathFinder.FindPath (Verse.IntVec3 start, Verse.LocalTargetInfo dest, Verse.Pawn pawn, Verse.AI.PathEndMode peMode, Verse.AI.PathFinderCostTuning tuning) [0x0003e] in <957a20e0be784a65bc32cf449445b937>:0 
+ at Verse.AI.Pawn_PathFollower.GenerateNewPath () [0x0005e] in <957a20e0be784a65bc32cf449445b937>:0 
+     - PREFIX OskarPotocki.VFECore: Boolean VFECore.PhasingPatches:GenerateNewPath_Prefix(Pawn_PathFollower __instance, Pawn ___pawn, LocalTargetInfo ___destination, PathEndMode ___peMode, PawnPath& __result)
+ at Verse.AI.Pawn_PathFollower.TrySetNewPath () [0x00000] in <957a20e0be784a65bc32cf449445b937>:0 
+ at Verse.AI.Pawn_PathFollower.TryEnterNextPathCell () [0x00303] in <957a20e0be784a65bc32cf449445b937>:0 
+     - PREFIX juanlopez2008.LightsOut: Void LightsOut.Patches.Lights.DetectPawnRoomChange:Prefix(Pawn ___pawn, Room& __state)
+     - POSTFIX OskarPotocki.VFECore: Void VFECore.PhasingPatches:UnfogEnteredCells(Pawn_PathFollower __instance, Pawn ___pawn)
+     - POSTFIX juanlopez2008.LightsOut: Void LightsOut.Patches.Lights.DetectPawnRoomChange:Postfix(Pawn ___pawn, Room& __state)
+ at Verse.AI.Pawn_PathFollower.PatherTick () [0x00404] in <957a20e0be784a65bc32cf449445b937>:0 
+     - PREFIX Krkr.RocketMan.Soyuz: Void Soyuz.Patches.Pawn_PathFollower_Patch+Pawn_PathFollower_PatherTick:Prefix(Pawn_PathFollower __instance)
+     - POSTFIX Krkr.RocketMan.Soyuz: Void Soyuz.Patches.Pawn_PathFollower_Patch+Pawn_PathFollower_PatherTick:Postfix(Pawn_PathFollower __instance)
+     - FINALIZER Krkr.RocketMan.Soyuz: Void Soyuz.Patches.Pawn_PathFollower_Patch+Pawn_PathFollower_PatherTick:Finalizer(Exception __exception)
+ at Verse.Pawn.Tick () [0x000d8] in <957a20e0be784a65bc32cf449445b937>:0 
+     - TRANSPILER Krkr.RocketMan.Soyuz: IEnumerable`1 Soyuz.Patches.Pawn_Tick_Patch:Transpiler(IEnumerable`1 instructions, ILGenerator generator)
+     - POSTFIX Roolo.DualWield: Void DualWield.HarmonyInstance.Pawn_Tick:Postfix(Pawn __instance)
+     - FINALIZER Krkr.RocketMan.Soyuz: Void Soyuz.Patches.Pawn_Tick_Patch:Finalizer(Pawn __instance, Exception __exception)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition:Verse.Log.Error_Patch7 (string)
+RocketMan.Logger:Debug (string,System.Exception,string)
+Soyuz.Patches.Pawn_Tick_Patch:Finalizer (Verse.Pawn,System.Exception)
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition:Verse.Pawn.Tick_Patch2 (Verse.Pawn)
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition:Verse.TickList.Tick_Patch2 (Verse.TickList)
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition:Verse.TickManager.DoSingleTick_Patch4 (Verse.TickManager)
+Verse.TickManager:TickManagerUpdate ()
+(wrapper dynamic-method) MonoMod.Utils.DynamicMethodDefinition:Verse.Game.UpdatePlay_Patch2 (Verse.Game)
+Verse.Root_Play:Update ()
+		*/
+		static MethodBase TargetMethod()
+        {
+			return typeof(PathFinder).GetMethod("FinalizedPath", BindingFlags.NonPublic | BindingFlags.Instance);
+        }
+
+		[HarmonyPrefix]
+		static bool FinalizedPath_Prefix(ref PathFinder __instance, ref PawnPath __result, int finalIndex, bool usedRegionHeuristics)
+		{
+			PawnPath emptyPawnPath = __instance.map.pawnPathPool.GetEmptyPawnPath();
+			int num = finalIndex;
+
+			int max = 0;
+			for (; ; )
+			{
+				int parentIndex = PathFinder.calcGrid[num].parentIndex;
+				emptyPawnPath.AddNode(__instance.map.cellIndices.IndexToCell(num));
+				if (num == parentIndex)
+				{
+					break;
+				}
+				if (max>1000)
+                {
+
+					TraverseParms traverse = __instance.traverseParms;
+					Log.Warning("bailing out of path calculation for "+traverse.pawn+" with "+traverse.pawn.TicksPerMoveCardinal+"/"+traverse.pawn.TicksPerMoveDiagonal+" TicksPerMoveCardinal/Diagonal after 1000 path nodes added to prevent mem leaks, on num " + num + " aiming for " + parentIndex);
+					__result = PawnPath.NotFound;
+
+					return false;
+				}
+				num = parentIndex;
+				max++;
+			}
+			emptyPawnPath.SetupFound((float)PathFinder.calcGrid[finalIndex].knownCost, usedRegionHeuristics);
+			__result = emptyPawnPath;
+
+			return false;
+		}
+
+	}
+	[HarmonyPatch(typeof(PathFinder), nameof(PathFinder.FindPath), new Type[] {
+		typeof(IntVec3),
+		typeof(LocalTargetInfo),
+		typeof(TraverseParms),
+		typeof(PathEndMode),
+		typeof(PathFinderCostTuning) })]
+	static class Patch_PathFinder
+	{ 
+
+		static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             int offset = -1, objectsFound = 0;
 			bool ran = false, searchForObjects = false, thresholdReplaced = false;
