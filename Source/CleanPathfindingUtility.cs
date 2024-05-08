@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Linq;
+using UnityEngine;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
 namespace CleanPathfinding
@@ -308,23 +309,18 @@ namespace CleanPathfinding
 
 			float GameGlowAtFast(Map map, int index)
 			{
-				float daylight = 0f;
-				//If there's no roof, they're outside, so factory the daylight
+				// If there's no roof, they're outside, so factor in the daylight
 				if (map.roofGrid.roofGrid[index] == null)
 				{
-					daylight = map.skyManager.curSkyGlowInt;
-					if (daylight == 1f) return 1f;
+					//If the sky's glow is at max, return 1
+					if (Mathf.Approximately(map.skyManager.curSkyGlowInt, 1f)) return 1f;
 				}
-#if v1_5
-
-#else
-				ColorInt color = map.glowGrid.glowGrid[index];
-#endif
-				UnityEngine.Color32 color = map.glowGrid.VisualGlowAt(index);
-				if (color.a == 1) return 1;
-
-				return (float)(color.r + color.g + color.b) * 0.0047058823529412f; //n / 3f / 255f * 3.6f pre-computed, since I guess the assembler doesn't optimize this
+				var visualColor = map.glowGrid.VisualGlowAt(index);
+				if (Mathf.Approximately(visualColor.a,1f)) return 1;
+				const float precomputedColorMultiplier = 0.0047058823529412f;
+				return (visualColor.r + visualColor.g + visualColor.b) * precomputedColorMultiplier; // n / 3f / 255f * 3.6f pre-computed
 			}
+
 
 #endregion
         }
