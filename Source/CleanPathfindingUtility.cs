@@ -13,8 +13,15 @@ using static CleanPathfinding.ModSettings_CleanPathfinding;
 namespace CleanPathfinding
 {
 	#region Harmony
-
-
+	
+	/// <summary>
+	/// This patch is used to modify the finalization of a pathfinding result in the following ways:
+	/// - It creates a new PawnPath object and populates it with the path nodes from the PathFinder's calculation grid.
+	/// - It adds a safety check to prevent memory leaks by limiting the maximum number of path nodes to 1000.
+	///   If the limit is exceeded, it logs a warning and returns PawnPath.NotFound.
+	/// - It sets up the PawnPath object with the known cost and region heuristics flag.
+	/// - It replaces the original path result with the newly created PawnPath object.
+	/// </summary>
 	[HarmonyPatch(typeof(PathFinder))]
 
 	static class Patch_PathFinder_Finalize
@@ -28,36 +35,46 @@ namespace CleanPathfinding
 		static bool FinalizedPath_Prefix(ref PathFinder __instance, ref PawnPath __result, int finalIndex, bool usedRegionHeuristics)
 		{
 			PawnPath emptyPawnPath = __instance.map.pawnPathPool.GetEmptyPawnPath();
-			int num = finalIndex;
+			int goalIndex = finalIndex;
 
-			int max = 0;
-			for (; ; )
+			const int maxIterations = 1000;
+			int currentIteration = 0;
+
+			while(true)
 			{
-				int parentIndex = PathFinder.calcGrid[num].parentIndex;
-				emptyPawnPath.AddNode(__instance.map.cellIndices.IndexToCell(num));
-				if (num == parentIndex)
+				int parentIndex = PathFinder.calcGrid[goalIndex].parentIndex;
+				emptyPawnPath.AddNode(__instance.map.cellIndices.IndexToCell(goalIndex));
+				if (goalIndex == parentIndex)
 				{
 					break;
 				}
-				if (max>1000)
+				if (currentIteration>maxIterations)
                 {
 
 					TraverseParms traverse = __instance.traverseParms;
-					Log.Warning("bailing out of path calculation for "+traverse.pawn+" with "+traverse.pawn.TicksPerMoveCardinal+"/"+traverse.pawn.TicksPerMoveDiagonal+" TicksPerMoveCardinal/Diagonal after 1000 path nodes added to prevent mem leaks, on num " + num + " aiming for " + parentIndex);
+					Log.Warning("bailing out of path calculation for "+traverse.pawn+" with "+traverse.pawn.TicksPerMoveCardinal+"/"+traverse.pawn.TicksPerMoveDiagonal+" TicksPerMoveCardinal/Diagonal after 1000 path nodes added to prevent mem leaks, on num " + goalIndex + " aiming for " + parentIndex);
 					__result = PawnPath.NotFound;
 
 					return false;
 				}
-				num = parentIndex;
-				max++;
+				goalIndex = parentIndex;
+				currentIteration++;
 			}
-			emptyPawnPath.SetupFound((float)PathFinder.calcGrid[finalIndex].knownCost, usedRegionHeuristics);
+			emptyPawnPath.SetupFound(PathFinder.calcGrid[finalIndex].knownCost, usedRegionHeuristics);
 			__result = emptyPawnPath;
 
 			return false;
 		}
 
 	}
+	
+	/// <summary>
+	/// A Transpiler patch that modifies the pathfinding behavior in the following ways:
+	/// - Replaces the region-mode pathing threshold value with the value from ModSettings_CleanPathfinding.regionModeThreshold.
+	/// - Searches for specific local variables related to terrain pathfinding costs and stores them for later use.
+	/// - Adjusts the pathfinding costs using the CleanPathfindingUtility.AdjustCosts method based on the stored local variables, pawn, start position, and map.
+	/// - Logs a warning if the transpiler fails to find the target code, indicating a potential mod conflict or RimWorld update.
+	/// </summary>
 	[HarmonyPatch(typeof(PathFinder), nameof(PathFinder.FindPath), new Type[] {
 		typeof(IntVec3),
 		typeof(LocalTargetInfo),
@@ -66,13 +83,12 @@ namespace CleanPathfinding
 		typeof(PathFinderCostTuning) })]
 	static class Patch_PathFinder
 	{ 
-
 		static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             int offset = -1, objectsFound = 0;
 			bool ran = false, searchForObjects = false, thresholdReplaced = false;
 
-			var method_regionModeThreshold = AccessTools.Field(typeof(ModSettings_CleanPathfinding), nameof(ModSettings_CleanPathfinding.regionModeThreshold));
+			var method_regionModeThreshold = AccessTools.Field(typeof(ModSettings_CleanPathfinding), nameof(regionModeThreshold));
 			var field_extraDraftedPerceivedPathCost = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraDraftedPerceivedPathCost));
 			var field_extraNonDraftedPerceivedPathCost = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
 
@@ -291,7 +307,8 @@ namespace CleanPathfinding
 				//Check and set cache
 				if (Current.gameInt.tickManager.ticksGameInt % 600 == 0) lastFactionID = -1; // Reset every 10th second
 				if (faction.loadID == lastFactionID) return lastFactionHostileCache;
-				else lastFactionID = faction.loadID;
+				
+				lastFactionID = faction.loadID;
 
 				//Look through their relationships table and look up the player faction, then record to cache
 				var relations = faction.relations;
@@ -320,8 +337,6 @@ namespace CleanPathfinding
 				const float precomputedColorMultiplier = 0.0047058823529412f;
 				return (visualColor.r + visualColor.g + visualColor.b) * precomputedColorMultiplier; // n / 3f / 255f * 3.6f pre-computed
 			}
-
-
 #endregion
         }
 	}

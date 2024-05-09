@@ -255,16 +255,16 @@ namespace CleanPathfinding
 			try
 			{
 				//Wander tuning
-				if (!wanderTuning && patchLedger[nameof(Patch_JobGiver_Wander)])
+				if (!wanderTuning && patchLedger[nameof(Patch_JobGiver_Wander_TryGiveJob)])
 				{
-					patchLedger[nameof(Patch_JobGiver_Wander)] = false;
+					patchLedger[nameof(Patch_JobGiver_Wander_TryGiveJob)] = false;
 					harmony.Unpatch(AccessTools.Method(typeof(JobGiver_Wander), nameof(JobGiver_Wander.TryGiveJob) ), HarmonyPatchType.Postfix, this.Content.PackageIdPlayerFacing);
 				}
-				else if (wanderTuning && !patchLedger[nameof(Patch_JobGiver_Wander)])
+				else if (wanderTuning && !patchLedger[nameof(Patch_JobGiver_Wander_TryGiveJob)])
 				{
-					patchLedger[nameof(Patch_JobGiver_Wander)] = true;
+					patchLedger[nameof(Patch_JobGiver_Wander_TryGiveJob)] = true;
 					harmony.Patch(AccessTools.Method(typeof(JobGiver_Wander), nameof(JobGiver_Wander.TryGiveJob) ), 
-						postfix: new HarmonyMethod(typeof(Patch_JobGiver_Wander), nameof(Patch_JobGiver_Wander.Postfix)));
+						postfix: new HarmonyMethod(typeof(Patch_JobGiver_Wander_TryGiveJob), nameof(Patch_JobGiver_Wander_TryGiveJob.Postfix)));
 				}
 
 				//Doorpathing
@@ -283,7 +283,7 @@ namespace CleanPathfinding
 					harmony.Patch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.DeSpawn) ), 
 						postfix: new HarmonyMethod(typeof(Patch_Building_DoorDeSpawn), nameof(Patch_Building_DoorDeSpawn.Prefix)));
 					harmony.Patch(AccessTools.Method(typeof(Room), nameof(Room.Notify_RoomShapeChanged) ), 
-						postfix: new HarmonyMethod(typeof(Patch_Notify_RoomShapeChanged), nameof(Patch_Notify_RoomShapeChanged.Postfix)));
+						postfix: new HarmonyMethod(typeof(Patch_Room_Notify_RoomShapeChanged), nameof(Patch_Room_Notify_RoomShapeChanged.Postfix)));
 				}
 			}
 			catch (System.Exception ex)

@@ -13,46 +13,72 @@ using static CleanPathfinding.ModSettings_CleanPathfinding;
  
 namespace CleanPathfinding
 {
-	static class Area_Assit
-    {
-		public static void SetLabel(this Area_Allowed self, string label)
-        {
-
-        }
-    }
-
-
-	//Add gizmos to the doors
+	/// <summary>
+	/// Harmony patch to add custom gizmos to doors.
+	/// </summary>
     [HarmonyPatch(typeof(Building_Door), nameof(Building_Door.GetGizmos))]
     static class Patch_Building_Door_GetGizmos
     {
+	    /// <summary>
+	    /// Checks if the door pathing system is enabled and adds the door to the ledger.
+	    /// </summary>
+	    /// <returns> True if door pathing is enabled, false otherwise.</returns>
 		static bool Prepare()
 		{
-			if (!Mod_CleanPathfinding.patchLedger.ContainsKey(nameof(Patch_Building_Door_GetGizmos))) Mod_CleanPathfinding.patchLedger.Add(nameof(Patch_Building_Door_GetGizmos), doorPathing);
-            return doorPathing;
+			Mod_CleanPathfinding.patchLedger.TryAdd(nameof(Patch_Building_Door_GetGizmos), doorPathing);
+			return doorPathing;
 		}
+	    
+	    /// <summary>
+	    /// Add custom gizmos to the door.
+	    /// </summary>
 		public static IEnumerable<Gizmo> Postfix(IEnumerable<Gizmo> values, Building_Door __instance)
         {
 			return GetGizmos(values, __instance);
 		}
 	}
 
-	//If a door is despawned, remove the offset
+	/// <summary>
+	/// This patch ensures that if a door is spawned, the door pathing system is updated to reflect the change.
+	/// </summary>
 	[HarmonyPatch(typeof(Building_Door), nameof(Building_Door.DeSpawn))]
     static class Patch_Building_DoorDeSpawn
     {
+	    /// <summary>
+	    /// Determines whether the patch should be applied, based on the current state of doorPathing.
+	    /// </summary>
+	    /// <returns> True if door pathing is enabled, false otherwise.</returns>
 		static bool Prepare() { return doorPathing; }
+	    
+	    /// <summary>
+	    /// Updates the door pathing system when a door is despawned.
+	    /// </summary>
 		public static void Prefix(Building_Door __instance)
-        {
-			if (compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing comp)) comp.doorCostGrid[__instance.Map.cellIndices.CellToIndex(__instance.Position)] = 0;
+		{
+			var hasMapComp = compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing comp);
+
+			if (hasMapComp)
+			{
+				comp.doorCostGrid[__instance.Map.cellIndices.CellToIndex(__instance.Position)] = 0;
+			}
 		}
 	}
-
-	//If a door is despawned, remove the offset
+    
+	/// <summary>
+	/// This patch ensures that if the room shape is changed, the door pathing system is updated to reflect the change.
+	/// </summary>
 	[HarmonyPatch(typeof(Room), nameof(Room.Notify_RoomShapeChanged))]
-    static class Patch_Notify_RoomShapeChanged
+    static class Patch_Room_Notify_RoomShapeChanged
     {
+	    /// <summary>
+	    /// Determines whether the patch should be applied, based on the current state of doorPathing.
+	    /// </summary>
+	    /// <returns> True if door pathing is enabled, false otherwise.</returns>
 		static bool Prepare() { return doorPathing; }
+	    
+	    /// <summary>
+	    /// Updates the door pathing system when a room's shape is changed.
+	    /// </summary>
 		public static void Postfix(Room __instance)
         {
 			if (Current.ProgramState != ProgramState.MapInitializing && compCache.TryGetValue(__instance.Map?.uniqueID ?? -1, out MapComponent_DoorPathing mapComp)) 
@@ -66,30 +92,58 @@ namespace CleanPathfinding
 		}
 	}
 
-	//Update avoid area
+	/// <summary>
+	/// Harmony patch that updates the door pathing system whenever changes are made to an 'Avoid' marked area.
+	/// </summary>
 	[HarmonyPatch(typeof(Area), nameof(Area.Set))]
-    static class Patch_Area_Set
-    {
-		static bool Prepare() { return doorPathing; }
-		public static void Postfix(Area __instance, IntVec3 c, bool val)
-        {
-			if (__instance.Label == "Avoid" && compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing mapComp))
-			{
-				mapComp.UpdateAvoidArea(c, val);
-			}
-		}
+	static class Patch_Area_Set
+	{
+	    /// <summary>
+	    /// Determines whether the patch should be applied, based on the current state of doorPathing.
+	    /// </summary>
+	    /// <returns>True if door pathing is enabled, false otherwise.</returns>
+	    static bool Prepare() { return doorPathing; }
+
+	    /// <summary>
+	    /// Updates door pathing to reflect changes in areas designated as 'Avoid'.
+	    /// </summary>
+	    public static void Postfix(Area __instance, IntVec3 c, bool val)
+	    {
+	        var avoidArea = __instance.Label == "Avoid";
+	        var foundMapComp = compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing mapComp);
+	        if (avoidArea && foundMapComp)
+	        {
+	            mapComp.UpdateAvoidArea(c, val);
+	        }
+	    }
 	}
 
+	/// <summary>
+	/// Harmony patch that handles the deletion of 'Avoid' areas for door pathing.
+	/// </summary>
 	[HarmonyPatch(typeof(Area), nameof(Area.Delete))]
-    static class Patch_Area_Delete
-    {
-		static bool Prepare() { return doorPathing; }
-		public static void Prefix(Area __instance)
-        {
-			if (__instance.Label == "Avoid" && compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing mapComp)) mapComp.DeregisterAvoidArea(__instance);
-		}
+	static class Patch_Area_Delete
+	{
+	    /// <summary>
+	    /// Checks if door pathing is enabled to determine if the patch should proceed.
+	    /// </summary>
+	    static bool Prepare() { return doorPathing; }
+
+	    /// <summary>
+	    /// Deregisters an 'Avoid' area from the door pathing system prior to its deletion.
+	    /// </summary>
+	    public static void Prefix(Area __instance)
+	    {
+	        var avoidArea = __instance.Label == "Avoid";
+	        var foundMapComp = compCache.TryGetValue(__instance.Map.uniqueID, out MapComponent_DoorPathing mapComp);
+	        if (avoidArea && foundMapComp)
+	        {
+	            mapComp.DeregisterAvoidArea(__instance);
+	        }
+	    }
 	}
 
+    
 #if v1_5
 	//SetLabel removed in 1.5
 #else
@@ -114,9 +168,15 @@ namespace CleanPathfinding
 	}
 #endif
 
+	/// <summary>
+	/// This patch clears cached door pathing data when the world is finalized.
+	/// </summary>
 	[HarmonyPatch(typeof(World), nameof(World.FinalizeInit))]
     static class Patch_FinalizeInit
     {
+	    /// <summary>
+	    /// Performs a cleanup of the door pathing cache when the world is finalized.
+	    /// </summary>
 		static void Postfix()
 		{ 
 			DoorPathingUtility.compCache.Clear();
@@ -126,27 +186,42 @@ namespace CleanPathfinding
 		}
 	}
 
+    /// <summary>
+    /// Postfix for PathFinder.GetBuildingCost
+    /// If the pawn is a player pawn and the building is an exclusive door, PathFinder.GetBuildingCost will return 0
+    /// </summary>
 	[HarmonyPatch(typeof(PathFinder), nameof(PathFinder.GetBuildingCost))]
-    public static class Patch_GetBuildingCost
+    public static class Patch_PathFinder_GetBuildingCost
     {
-		static bool Prepare()
+	    [HarmonyPrepare]
+		static bool Initialize()
 		{
+			//Get the mod setting for door pathing
 			return doorPathing;
 		}
-		static int Postfix(int __result, Building b, Pawn pawn)
-		{
-			return (
-				(pawn?.factionInt?.def.isPlayer ?? false) && //Is pawn the player's?
-				((!usingDoorsExpanded && b is Building_Door) || usingDoorsExpanded) && //Is a door?
-				compCache.TryGetValue(b.Map.uniqueID, out MapComponent_DoorPathing mapComp) && //Map component found?
-				mapComp.doorRegistry.TryGetValue(b.thingIDNumber, out DoorType doorType) && //Door registered?
-				doorType == DoorType.Exclusive //Door is exclusive?
-			) ? 0 : __result; //Cancel the cost if exclusive, otherwise pass thru
-		}
+		
+	    static int Postfix(int __result, Building b, Pawn pawn)
+	    {
+		    var isPlayerPawn = pawn?.factionInt?.def.isPlayer ?? false;
+		    var isDoor = (!usingDoorsExpanded && b is Building_Door) || usingDoorsExpanded;
+		    var hasMapComp = compCache.TryGetValue(b.Map.uniqueID, out var mapComp);
+		    if (isPlayerPawn && isDoor && hasMapComp)
+		    {
+			    var hasDoorType = mapComp.doorRegistry.TryGetValue(b.thingIDNumber, out var doorType);
+			    if (hasDoorType && doorType == DoorType.Exclusive)
+			    {
+				    return 0;
+			    }
+		    }
+		    return __result;
+	    }
 	}
-
+    
+    /// <summary>
+    /// Transpiler for SelectionDrawer.DrawSelectionBracketFor
+    /// </summary>
 	[HarmonyPatch(typeof(SelectionDrawer), nameof(SelectionDrawer.DrawSelectionBracketFor))]
-    static class Patch_DrawSelectionBracketFor
+    static class Patch_SelectionDrawer_DrawSelectionBracketFor
     {
 		static bool Prepare()
 		{
